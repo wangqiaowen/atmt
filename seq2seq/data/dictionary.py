@@ -75,6 +75,7 @@ class Dictionary(object):
                 dictionary.word2idx[word] = len(dictionary.words)
                 dictionary.words.append(word)
                 dictionary.counts.append(int(count))
+                # print (dictionary.word2idx)
             return dictionary
 
     def save(self, file):

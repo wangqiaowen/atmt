@@ -20,7 +20,8 @@ def get_args():
     parser.add_argument('--cuda', default=False, help='Use a GPU')
 
     # Add data arguments
-    parser.add_argument('--data', default='baseline/prepared_data', help='path to data directory')
+    parser.add_argument('--data', default='/Users/wangqiaowen/atmt/baseline/bpe', help='path to data directory')
+    parser.add_argument('--bpe-dropout-data', default='/Users/wangqiaowen/atmt/baseline/bpe/bpe_dropout', help='path to data')
     parser.add_argument('--source-lang', default='de', help='source language')
     parser.add_argument('--target-lang', default='en', help='target language')
     parser.add_argument('--max-tokens', default=None, type=int, help='maximum number of tokens in a batch')
@@ -64,20 +65,26 @@ def main(args):
     utils.init_logging(args)
 
     # Load dictionaries
-    src_dict = Dictionary.load(os.path.join(args.data, 'dict.{:s}'.format(args.source_lang)))
+    src_dict = Dictionary.load(os.path.join(args.data, 'vocab_train.{:s}'.format(args.source_lang)))
     logging.info('Loaded a source dictionary ({:s}) with {:d} words'.format(args.source_lang, len(src_dict)))
-    tgt_dict = Dictionary.load(os.path.join(args.data, 'dict.{:s}'.format(args.target_lang)))
+    # print (src_dict.counts)
+    tgt_dict = Dictionary.load(os.path.join(args.data, 'vocab_train.{:s}'.format(args.target_lang)))
     logging.info('Loaded a target dictionary ({:s}) with {:d} words'.format(args.target_lang, len(tgt_dict)))
 
     # Load datasets
     def load_data(split):
+
         return Seq2SeqDataset(
-            src_file=os.path.join(args.data, '{:s}.{:s}'.format(split, args.source_lang)),
-            tgt_file=os.path.join(args.data, '{:s}.{:s}'.format(split, args.target_lang)),
+            src_file=os.path.join(args.bpe_dropout_data, '{:s}.{:s}'.format(split, args.source_lang)),
+            tgt_file=os.path.join(args.bpe_dropout_data, '{:s}.{:s}'.format(split, args.target_lang)),
             src_dict=src_dict, tgt_dict=tgt_dict)
 
-    train_dataset = load_data(split='train') if not args.train_on_tiny else load_data(split='tiny_train')
-    valid_dataset = load_data(split='valid')
+    """
+    To use BPE without BPE-dropout, please uncomment the commented code below
+    """
+
+    # train_dataset = load_data(split='bpe_train_dropout_pkl') if not args.train_on_tiny else load_data(split='bpe_tiny_train_dropout_pkl')
+    valid_dataset = load_data(split='bpe_valid_dropout_pkl')
 
     # Build model and optimization criterion
     model = models.build_model(args, src_dict, tgt_dict)
@@ -99,6 +106,22 @@ def main(args):
     best_validate = float('inf')
 
     for epoch in range(last_epoch + 1, args.max_epoch):
+
+        """
+        The next 6 lines of code were for BPE-fropout.
+        To use BPE without BPE-dropout, please comment out the next 6 lines of code
+
+        """
+
+        src = os.system('subword-nmt apply-bpe -c /Users/wangqiaowen/atmt/baseline/bpe/code.file --dropout 0.05 --vocabulary /Users/wangqiaowen/atmt/baseline/bpe/vocab_train.de  < /Users/wangqiaowen/atmt/baseline/preprocessed_data/train.de > /Users/wangqiaowen/atmt/baseline/bpe/bpe_dropout/bpe_train_dropout.de')
+        tgt = os.system('subword-nmt apply-bpe -c /Users/wangqiaowen/atmt/baseline/bpe/code.file --dropout 0.05 --vocabulary /Users/wangqiaowen/atmt/baseline/bpe/vocab_train.en  < /Users/wangqiaowen/atmt/baseline/preprocessed_data/train.en > /Users/wangqiaowen/atmt/baseline/bpe/bpe_dropout/bpe_train_dropout.en')
+        pkl = os.system('python /Users/wangqiaowen/atmt/bpe_preprocess.py')
+
+        if src == 0 and tgt == 0  and pkl == 0 :
+            logging.info('pkl files done')
+
+        train_dataset = load_data(split='bpe_train_dropout_pkl') if not args.train_on_tiny else load_data(split='bpe_tiny_train_dropout_pkl')
+
         train_loader = \
             torch.utils.data.DataLoader(train_dataset, num_workers=1, collate_fn=train_dataset.collater,
                                         batch_sampler=BatchSampler(train_dataset, args.max_tokens, args.batch_size, 1,
