@@ -50,6 +50,12 @@ def main(args):
 	def make_split_datasets(lang, dictionary):
 		if args.train_prefix is not None:
 			make_binary_dataset(args.train_prefix + '.' + lang, os.path.join(args.bpe_dropout_data, 'bpe_train_dropout_pkl.' + lang), dictionary)
+
+		"""
+		To use BPE-dropout, please comment out the next 6 lines of commented code before traning after data preprocessing.
+		To use BPE without BPE-dropout, please uncomment the next 6 lines of commented code during data preprocessing.
+
+		"""
 		# if args.tiny_train_prefix is not None:
 		# 	make_binary_dataset(args.tiny_train_prefix + '.' + lang, os.path.join(args.data, 'bpe_tiny_train_dropout_pkl.' + lang), dictionary)
 		# if args.valid_prefix is not None:
@@ -58,23 +64,6 @@ def main(args):
 		# 	make_binary_dataset(args.test_prefix + '.' + lang, os.path.join(args.data, 'bpe_test_dropout_pkl.' + lang), dictionary)
 	make_split_datasets(args.source_lang, src_dict)
 	make_split_datasets(args.target_lang, tgt_dict)
-
-	# nsent, ntok = 0, 0
-	# unk_counter = collections.Counter()
-
-	# def unk_consumer(word, idx):
-	# 	if idx == src_dict.unk_idx and word != src_dict.unk_word:
-	# 		unk_counter.update([word])
-	# tokens_list = []
-	# with open ('/Users/wangqiaowen/atmt/baseline/preprocessed_data/bpe_tiny_train.de') as src_tiny :
-	# 	for line in src_tiny:
-	# 		tokens = src_dict.binarize(line.strip(), word_tokenize, append_eos = True, consumer=unk_consumer)
-	# 		nsent, ntok = nsent + 1, ntok + len(tokens)
-	# 		tokens_list.append(tokens.numpy())
-	# with open('/Users/wangqiaowen/atmt/baseline/preprocessed_data/bpe_tiny_train_pkl.de', 'wb') as outf:
-	# 	pickle.dump(tokens_list, outf, protocol=pickle.HIGHEST_PROTOCOL)
-		# logging.info('Built a binary dataset for {}: {} sentences, {} tokens, {:.3f}% replaced by unknown token'.format(
-            # input_file, nsent, ntok, 100.0 * sum(unk_counter.values()) / ntok, dictionary.unk_word))
 
 
 def make_binary_dataset(input_file, output_file, dictionary, tokenize=word_tokenize, append_eos=True):
